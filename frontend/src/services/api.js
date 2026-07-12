@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://academic-dashboard-api.onrender.com/api';
+const API_BASE_URL = 'http://localhost:5006/api';
 const api = axios.create({ baseURL: API_BASE_URL });
 
 api.interceptors.request.use((config) => {

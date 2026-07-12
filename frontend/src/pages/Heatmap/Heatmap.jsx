@@ -70,16 +70,16 @@ export default function Heatmap({ user }) {
 
       {/* Quick stats bar */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center card-hover">
+        <div className="bg-blue-50 rounded-xl border border-blue-200 p-4 text-center card-hover">
           <p className="text-2xl font-bold text-blue-600">{avgScore}%</p>
           <p className="text-xs text-slate-500 mt-0.5">Average Score</p>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center card-hover">
+        <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-4 text-center card-hover">
           <p className="text-2xl font-bold text-emerald-600">{highCount}</p>
           <p className="text-xs text-slate-500 mt-0.5">Strong Scores</p>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center card-hover">
-          <p className="text-2xl font-bold text-red-500">{lowCount}</p>
+        <div className="bg-orange-50 rounded-xl border border-orange-200 p-4 text-center card-hover">
+          <p className="text-2xl font-bold text-orange-600">{lowCount}</p>
           <p className="text-xs text-slate-500 mt-0.5">Needs Attention</p>
         </div>
       </div>
