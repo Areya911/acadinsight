@@ -11,11 +11,11 @@ router.post('/login', login);
 // Protected routes
 router.get('/me', auth, getProfile);
 
-// Admin routes
-router.get('/users', auth, roleCheck('admin'), async (req, res) => {
+// Admin and Faculty routes
+router.get('/users', auth, roleCheck('admin', 'faculty'), async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, role, department, roll_number, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, name, email, role, department, roll_number, semester, year, batch, created_at FROM users ORDER BY created_at DESC'
     );
     res.json({ users: result.rows });
   } catch (error) {

@@ -16,6 +16,19 @@ import ManageSemesterMarks from './pages/Students/ManageSemesterMarks';
 import EditStudentScores from './pages/Students/EditStudentScores';
 import UserManagement from './pages/Admin/UserManagement';
 
+// New Analytics pages
+import AdminDashboard from './pages/Analytics/AdminDashboard';
+import FacultyDashboard from './pages/Analytics/FacultyDashboard';
+import StudentProfile from './pages/Analytics/StudentProfile';
+import AttritionAnalytics from './pages/Analytics/AttritionAnalytics';
+import SubjectAnalytics from './pages/Analytics/SubjectAnalytics';
+import AcademicRoadmap from './pages/Analytics/AcademicRoadmap';
+
+// New Intervention pages
+import InterventionList from './pages/Interventions/InterventionList';
+import CreateIntervention from './pages/Interventions/CreateIntervention';
+import InterventionDetail from './pages/Interventions/InterventionDetail';
+
 function ProtectedRoute({ children, requiredRole }) {
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -77,7 +90,7 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="faculty">
               <Layout user={user} onLogout={handleLogout}>
-                <Dashboard user={user} />
+                <FacultyDashboard user={user} />
               </Layout>
             </ProtectedRoute>
           }
@@ -88,7 +101,7 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="admin">
               <Layout user={user} onLogout={handleLogout}>
-                <Dashboard user={user} />
+                <AdminDashboard user={user} />
               </Layout>
             </ProtectedRoute>
           }
@@ -119,8 +132,8 @@ export default function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              {user?.role === 'admin' && <Navigate to="/admin-dashboard" />}
-              {user?.role === 'faculty' && <Navigate to="/faculty-dashboard" />}
+              {user?.role === 'admin' && <Navigate to="/analytics/admin" />}
+              {user?.role === 'faculty' && <Navigate to="/analytics/faculty" />}
               {user?.role === 'student' && <Navigate to="/student-dashboard" />}
               {!user?.role && <Navigate to="/" />}
             </ProtectedRoute>
@@ -233,6 +246,55 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* New Analytics Routes */}
+        <Route path="/analytics/admin" element={
+          <ProtectedRoute requiredRole="admin">
+            <Layout user={user} onLogout={handleLogout}><AdminDashboard user={user} /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/analytics/faculty" element={
+          <FacultyRoute>
+            <Layout user={user} onLogout={handleLogout}><FacultyDashboard user={user} /></Layout>
+          </FacultyRoute>
+        } />
+        <Route path="/analytics/students/:id" element={
+          <ProtectedRoute>
+            <Layout user={user} onLogout={handleLogout}><StudentProfile user={user} /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/analytics/attrition" element={
+          <FacultyRoute>
+            <Layout user={user} onLogout={handleLogout}><AttritionAnalytics user={user} /></Layout>
+          </FacultyRoute>
+        } />
+        <Route path="/analytics/subjects" element={
+          <FacultyRoute>
+            <Layout user={user} onLogout={handleLogout}><SubjectAnalytics user={user} /></Layout>
+          </FacultyRoute>
+        } />
+        <Route path="/analytics/students/:id/roadmap" element={
+          <ProtectedRoute>
+            <Layout user={user} onLogout={handleLogout}><AcademicRoadmap user={user} /></Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* Intervention Routes */}
+        <Route path="/interventions" element={
+          <FacultyRoute>
+            <Layout user={user} onLogout={handleLogout}><InterventionList user={user} /></Layout>
+          </FacultyRoute>
+        } />
+        <Route path="/interventions/create" element={
+          <FacultyRoute>
+            <Layout user={user} onLogout={handleLogout}><CreateIntervention user={user} /></Layout>
+          </FacultyRoute>
+        } />
+        <Route path="/interventions/:id" element={
+          <ProtectedRoute>
+            <Layout user={user} onLogout={handleLogout}><InterventionDetail user={user} /></Layout>
+          </ProtectedRoute>
+        } />
       </Routes>
     </BrowserRouter>
   );

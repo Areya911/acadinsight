@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend, Cell
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell
 } from 'recharts';
 import { getMyScores, getClassPerformance } from '../../services/api';
 import StatusBadge from '../../components/StatusBadge';
@@ -127,33 +126,6 @@ export default function Reports({ user }) {
 
       {isStudent ? (
         <>
-          {/* Radar Chart */}
-          <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6">
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-slate-800">Skill Radar</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Visual overview of your skill distribution</p>
-            </div>
-            <ResponsiveContainer width="100%" height={320}>
-              <RadarChart data={filteredScores.map((s) => ({ skill: s.skill_name, score: s.total_score }))}>
-                <PolarGrid stroke="#e2e8f0" />
-                <PolarAngleAxis
-                  dataKey="skill"
-                  tick={{ fontSize: 11, fill: '#64748b' }}
-                />
-                <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                <Radar
-                  dataKey="score"
-                  stroke="#3b82f6"
-                  fill="#3b82f6"
-                  fillOpacity={0.15}
-                  strokeWidth={2}
-                  dot={{ r: 4, fill: '#3b82f6' }}
-                />
-                <Tooltip content={<CustomTooltip />} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-
           {/* Score Table */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <div className="flex items-center justify-between mb-4">

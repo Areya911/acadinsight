@@ -69,6 +69,10 @@ router.post('/semester-marks', auth, roleCheck('faculty', 'admin'), async (req, 
     );
     
     console.log('🔍 DEBUG: Insert result:', result.rows[0]);
+    
+    const { recalculateStudent } = require('../services/performanceEngine');
+    recalculateStudent(student_id).catch(err => console.error('Recalc error:', err));
+    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('🔍 DEBUG: Error adding semester marks:', error);

@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 // Create new student (faculty only)
 exports.createStudent = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, roll_number, department, semester, year, batch } = req.body;
     
     // Validate input
     if (!name || !email || !password) {
@@ -22,8 +22,18 @@ exports.createStudent = async (req, res) => {
     
     // Create student
     const result = await pool.query(
-      'INSERT INTO users (name, email, password, role, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id, name, email, role, created_at',
-      [name, email, hashedPassword, 'student']
+      'INSERT INTO users (name, email, password, role, roll_number, department, semester, year, batch, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) RETURNING id, name, email, role, roll_number, department, semester, year, batch, created_at',
+      [
+        name,
+        email,
+        hashedPassword,
+        'student',
+        roll_number || null,
+        department || null,
+        semester ? parseInt(semester) : null,
+        year ? parseInt(year) : null,
+        batch || null
+      ]
     );
     
     res.status(201).json({
@@ -39,7 +49,7 @@ exports.createStudent = async (req, res) => {
 exports.getAllStudents = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, role, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
+      'SELECT id, name, email, role, roll_number, department, semester, year, batch, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
       ['student']
     );
     

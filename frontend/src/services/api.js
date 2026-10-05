@@ -34,7 +34,7 @@ export const getClassPerformance = () => api.get('/class-performance');
 export const getAlerts = () => api.get('/alerts');
 
 // Student Management APIs
-export const createStudent = (name, email, password) => api.post('/students', { name, email, password });
+export const createStudent = (studentData) => api.post('/students', typeof studentData === 'object' ? studentData : { name: arguments[0], email: arguments[1], password: arguments[2] });
 export const getAllStudents = () => api.get('/students');
 export const getStudentById = (id) => api.get(`/students/${id}`);
 export const updateStudent = (id, studentData) => api.put(`/students/${id}`, studentData);
@@ -50,5 +50,26 @@ export const addStudentSemesterMarks = (marksData) => api.post('/student/semeste
 // Admin APIs (using existing functions)
 export const getAllAdminUsers = () => api.get('/auth/users');
 export const deleteAdminUser = (userId) => api.delete(`/auth/users/${userId}`);
+
+// Analytics APIs
+export const getAnalyticsOverview = () => api.get('/analytics/overview');
+export const getAnalyticsStudents = (params) => api.get('/analytics/students', { params });
+export const getStudentAnalyticsProfile = (id) => api.get(`/analytics/students/${id}`);
+export const getStudentRisk = (id) => api.get(`/analytics/students/${id}/risk`);
+export const getStudentWeakAreas = (id) => api.get(`/analytics/students/${id}/weak-areas`);
+export const getStudentRoadmap = (id) => api.get(`/analytics/students/${id}/roadmap`);
+export const getSubjectAnalytics = () => api.get('/analytics/subjects');
+export const getAttritionAnalytics = () => api.get('/analytics/attrition');
+export const getAnalyticsAlerts = () => api.get('/analytics/alerts');
+export const markAlertRead = (id) => api.put(`/analytics/alerts/${id}/read`);
+export const triggerRecalculate = () => api.post('/analytics/recalculate');
+
+// Intervention APIs
+export const getInterventions = (params) => api.get('/interventions', { params });
+export const createIntervention = (data) => api.post('/interventions', data);
+export const updateIntervention = (id, data) => api.put(`/interventions/${id}`, data);
+export const getInterventionById = (id) => api.get(`/interventions/${id}`);
+export const getInterventionUpdates = (id) => api.get(`/interventions/${id}/updates`);
+export const addInterventionUpdate = (id, data) => api.post(`/interventions/${id}/updates`, data);
 
 export default api;

@@ -32,11 +32,11 @@ const iconMap = {
 };
 
 const colorConfig = {
-  blue: { bg: 'bg-blue-50', text: 'text-blue-600', icon: 'text-blue-500' },
-  green: { bg: 'bg-emerald-50', text: 'text-emerald-600', icon: 'text-emerald-500' },
-  yellow: { bg: 'bg-amber-50', text: 'text-amber-600', icon: 'text-amber-500' },
-  red: { bg: 'bg-red-50', text: 'text-red-600', icon: 'text-red-500' },
-  purple: { bg: 'bg-violet-50', text: 'text-violet-600', icon: 'text-violet-500' },
+  blue: { bg: 'bg-[#4655F5]/10', text: 'text-slate-900', icon: 'text-[#4655F5]', iconBg: 'bg-[#4655F5]/10' },
+  green: { bg: 'bg-emerald-50', text: 'text-slate-900', icon: 'text-emerald-600', iconBg: 'bg-emerald-50 border border-emerald-100' },
+  yellow: { bg: 'bg-amber-50', text: 'text-slate-900', icon: 'text-amber-600', iconBg: 'bg-amber-50 border border-amber-100' },
+  red: { bg: 'bg-rose-50', text: 'text-slate-900', icon: 'text-rose-600', iconBg: 'bg-rose-50 border border-rose-100' },
+  purple: { bg: 'bg-purple-50', text: 'text-slate-900', icon: 'text-purple-600', iconBg: 'bg-purple-50 border border-purple-100' },
 };
 
 export default function Card({ title, value, subtitle, color = 'blue', icon, trend }) {
@@ -44,32 +44,38 @@ export default function Card({ title, value, subtitle, color = 'blue', icon, tre
   const iconEl = icon && iconMap[icon];
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 card-hover">
-      <div className="flex items-start justify-between mb-3">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{title}</p>
+    <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs card-hover flex flex-col justify-between">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{title}</p>
         {iconEl && (
-          <div className={`w-9 h-9 rounded-lg ${cc.bg} flex items-center justify-center ${cc.icon}`}>
+          <div className={`w-9 h-9 rounded-lg ${cc.iconBg} flex items-center justify-center ${cc.icon} shrink-0`}>
             {iconEl}
           </div>
         )}
       </div>
-      <p className={`text-2xl font-bold ${cc.text}`}>{value}</p>
-      <div className="flex items-center gap-2 mt-1.5">
-        {trend !== undefined && (
-          <span className={`inline-flex items-center text-xs font-medium ${trend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-            {trend >= 0 ? (
-              <svg className="w-3.5 h-3.5 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-              </svg>
-            ) : (
-              <svg className="w-3.5 h-3.5 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-            )}
-            {Math.abs(trend)} pts
-          </span>
-        )}
-        {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+      <div>
+        <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">{value}</p>
+        <div className="flex items-center gap-2 mt-2">
+          {trend !== undefined && (
+            <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full border ${
+              trend >= 0 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60' 
+                : 'bg-rose-50 text-rose-700 border-rose-200/60'
+            }`}>
+              {trend >= 0 ? (
+                <svg className="w-3.5 h-3.5 mr-0.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5 mr-0.5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              )}
+              {Math.abs(trend)} pts
+            </span>
+          )}
+          {subtitle && <p className="text-xs text-slate-500 font-medium truncate">{subtitle}</p>}
+        </div>
       </div>
     </div>
   );
