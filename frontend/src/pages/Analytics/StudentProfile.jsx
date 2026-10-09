@@ -8,6 +8,7 @@ import RiskBadge from '../../components/RiskBadge';
 import PerformanceBadge from '../../components/PerformanceBadge';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import Icon from '../../components/Icon';
+import { formatPercent, formatScore } from '../../utils/format';
 
 export default function StudentProfile() {
   const { id } = useParams();
@@ -96,7 +97,7 @@ export default function StudentProfile() {
           <div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">{student.name}</h1>
             <p className="text-xs font-medium text-slate-500 mt-0.5">{student.roll_number} • {student.department}</p>
-            <p className="text-xs text-slate-400 mt-0.5">Semester {student.semester} • Batch {student.batch}</p>
+            <p className="text-xs text-slate-400 mt-0.5">Semester {student.semester} • Batch {student.batch}{student.mentor_name ? ` • Mentor: ${student.mentor_name}` : ''}</p>
           </div>
         </div>
         
@@ -104,7 +105,7 @@ export default function StudentProfile() {
           <div className="flex flex-col items-center">
             <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Performance</p>
             <p className={`text-xl font-bold ${performance.classification === 'GOOD' ? 'text-emerald-600' : performance.classification === 'AVERAGE' ? 'text-[#4655F5]' : 'text-rose-600'}`}>
-              {performance.overall_score}%
+              {formatPercent(performance.overall_score)}
             </p>
             <div className="mt-1">
               <PerformanceBadge classification={performance.classification} />
@@ -114,7 +115,7 @@ export default function StudentProfile() {
           <div className="flex flex-col items-center">
             <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Attrition Risk</p>
             <p className={`text-xl font-bold ${risk.risk_level === 'HIGH' ? 'text-rose-600' : risk.risk_level === 'MEDIUM' ? 'text-amber-600' : 'text-emerald-600'}`}>
-              {risk.risk_score}%
+              {formatPercent(risk.risk_score)}
             </p>
             <div className="mt-1">
               <RiskBadge level={risk.risk_level} />
@@ -201,7 +202,7 @@ export default function StudentProfile() {
                     <div className="flex justify-between items-center mb-1.5">
                       <span className="font-medium text-xs text-slate-900">{area.name}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded">{area.score}%</span>
+                        <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded">{formatPercent(area.score)}</span>
                         {getTrendIcon(area.trend)}
                       </div>
                     </div>
@@ -234,7 +235,7 @@ export default function StudentProfile() {
                   <div key={idx} className="p-3 border border-slate-200/70 bg-slate-50/60 rounded-lg hover:border-slate-300 transition-colors">
                     <div className="flex justify-between items-center mb-1.5">
                       <span className="font-medium text-xs text-slate-900">{area.name}</span>
-                      <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded">{area.score}%</span>
+                      <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded">{formatPercent(area.score)}</span>
                     </div>
                     <div className="w-full bg-slate-200/70 rounded-full h-1.5 overflow-hidden">
                       <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${area.score}%` }}></div>
@@ -294,7 +295,7 @@ export default function StudentProfile() {
                     <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
                       <td className="py-2.5 px-3 text-xs font-semibold text-slate-900">{subject.name}</td>
                       <td className="py-2.5 px-3 text-xs text-slate-500">{subject.semester}</td>
-                      <td className="py-2.5 px-3 text-xs font-bold text-slate-900">{subject.score}%</td>
+                      <td className="py-2.5 px-3 text-xs font-bold text-slate-900">{formatPercent(subject.score)}</td>
                       <td className="py-2.5 px-3">
                         <PerformanceBadge classification={subject.classification} />
                       </td>

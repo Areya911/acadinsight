@@ -49,6 +49,16 @@ function FacultyRoute({ children }) {
   return children;
 }
 
+function FacultyOnlyRoute({ children }) {
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  
+  if (!token) return <Navigate to="/" />;
+  if (user.role !== 'faculty') return <Navigate to={user.role === 'admin' ? '/analytics/admin' : '/student-dashboard'} />;
+  
+  return children;
+}
+
 export default function App() {
   const [user, setUser] = useState(null);
 
@@ -185,11 +195,11 @@ export default function App() {
         <Route
           path="/students/manage"
           element={
-            <FacultyRoute>
+            <FacultyOnlyRoute>
               <Layout user={user} onLogout={handleLogout}>
                 <ManageStudents />
               </Layout>
-            </FacultyRoute>
+            </FacultyOnlyRoute>
           }
         />
         <Route
@@ -268,11 +278,7 @@ export default function App() {
             <Layout user={user} onLogout={handleLogout}><AttritionAnalytics user={user} /></Layout>
           </FacultyRoute>
         } />
-        <Route path="/analytics/subjects" element={
-          <FacultyRoute>
-            <Layout user={user} onLogout={handleLogout}><SubjectAnalytics user={user} /></Layout>
-          </FacultyRoute>
-        } />
+        <Route path="/analytics/subjects" element={<Navigate to="/analytics/faculty" replace />} />
         <Route path="/analytics/students/:id/roadmap" element={
           <ProtectedRoute>
             <Layout user={user} onLogout={handleLogout}><AcademicRoadmap user={user} /></Layout>

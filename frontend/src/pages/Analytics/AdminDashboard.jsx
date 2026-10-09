@@ -7,6 +7,7 @@ import { getAnalyticsOverview, triggerRecalculate } from '../../services/api';
 import RiskBadge from '../../components/RiskBadge';
 import PerformanceBadge from '../../components/PerformanceBadge';
 import SkeletonLoader from '../../components/SkeletonLoader';
+import { formatPercent } from '../../utils/format';
 
 const COLORS = {
   good: '#10b981', // emerald-500
@@ -126,7 +127,7 @@ export default function AdminDashboard() {
         </div>
         <div className="bg-white rounded-xl p-4.5 shadow-xs border border-slate-200/80 flex flex-col items-center justify-center">
           <p className="text-indigo-600 text-[11px] font-medium uppercase tracking-wider mb-1">Avg Performance</p>
-          <p className="text-2xl font-bold text-indigo-600">{data.avg_performance?.toFixed(1)}%</p>
+          <p className="text-2xl font-bold text-indigo-600">{formatPercent(data.avg_performance)}</p>
         </div>
       </div>
 
@@ -228,10 +229,6 @@ export default function AdminDashboard() {
             <h3 className="text-sm font-semibold text-slate-900">Students Requiring Immediate Intervention</h3>
             <p className="text-xs text-slate-500 mt-0.5">Students identified with critical academic or attrition risk scores</p>
           </div>
-          <button onClick={() => navigate('/students/manage')} className="text-[#4655F5] hover:text-[#3645DB] text-xs font-medium inline-flex items-center gap-1 group">
-            View All Students 
-            <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
-          </button>
         </div>
         
         <div className="overflow-x-auto">

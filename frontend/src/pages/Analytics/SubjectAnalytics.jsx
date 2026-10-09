@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getSubjectAnalytics } from '../../services/api';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import Icon from '../../components/Icon';
+import { formatPercent } from '../../utils/format';
 
 export default function SubjectAnalytics() {
   const [subjects, setSubjects] = useState([]);
@@ -55,7 +56,7 @@ export default function SubjectAnalytics() {
           <div>
             <p className="text-rose-600 text-[11px] font-semibold uppercase tracking-wider mb-1">Most Difficult Subject</p>
             <p className="text-base font-semibold text-slate-900 line-clamp-1">{mostDifficult?.subject_name || 'N/A'}</p>
-            <p className="text-xs text-rose-600 font-medium mt-0.5">Cohort Avg: {mostDifficult?.avg_score}%</p>
+            <p className="text-xs text-rose-600 font-medium mt-0.5">Cohort Avg: {formatPercent(mostDifficult?.avg_score)}</p>
           </div>
           <div className="w-10 h-10 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-center text-rose-600">
             <Icon name="warning" size={20} color="#e11d48" />
@@ -65,7 +66,7 @@ export default function SubjectAnalytics() {
           <div>
             <p className="text-emerald-600 text-[11px] font-semibold uppercase tracking-wider mb-1">Best Performing Subject</p>
             <p className="text-base font-semibold text-slate-900 line-clamp-1">{bestPerforming?.subject_name || 'N/A'}</p>
-            <p className="text-xs text-emerald-600 font-medium mt-0.5">Cohort Avg: {bestPerforming?.avg_score}%</p>
+            <p className="text-xs text-emerald-600 font-medium mt-0.5">Cohort Avg: {formatPercent(bestPerforming?.avg_score)}</p>
           </div>
           <div className="w-10 h-10 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
             <Icon name="trophy" size={20} color="#059669" />
@@ -90,7 +91,7 @@ export default function SubjectAnalytics() {
             <div className="mb-4">
               <div className="flex justify-between items-end mb-1.5">
                 <span className="text-xs font-medium text-slate-500">Average Score</span>
-                <span className="font-bold text-slate-900 text-sm">{sub.avg_score}%</span>
+                <span className="font-bold text-slate-900 text-sm">{formatPercent(sub.avg_score)}</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                 <div 

@@ -1,6 +1,21 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5006/api';
+// Dynamic API URL for Render / Production / Local development
+const getBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    const trimmed = envUrl.trim().replace(/\/+$/, '');
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+  }
+  // Production default if frontend is hosted alongside backend or with a proxy
+  if (import.meta.env.PROD) {
+    return '/api';
+  }
+  // Local development default fallback
+  return 'http://localhost:5006/api';
+};
+
+const API_BASE_URL = getBaseUrl();
 const api = axios.create({ baseURL: API_BASE_URL });
 
 api.interceptors.request.use((config) => {

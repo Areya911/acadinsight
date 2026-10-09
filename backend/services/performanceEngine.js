@@ -368,7 +368,7 @@ async function recalculateAll() {
 async function getStudentFullProfile(studentId) {
   await recalculateStudent(studentId);
   
-  const userRes = await pool.query('SELECT id, name, email, role, year, semester, department, roll_number, batch FROM users WHERE id = $1', [studentId]);
+  const userRes = await pool.query('SELECT id, name, email, role, year, semester, department, roll_number, batch, assigned_faculty_id, mentor_name FROM users WHERE id = $1', [studentId]);
   const perfRes = await pool.query('SELECT * FROM student_performance WHERE student_id = $1', [studentId]);
   const riskRes = await pool.query('SELECT * FROM risk_scores WHERE student_id = $1', [studentId]);
   const riskFactorsRes = await pool.query('SELECT * FROM risk_factors WHERE student_id = $1', [studentId]);
@@ -392,7 +392,8 @@ async function getStudentFullProfile(studentId) {
   // Build subject_scores array
   const subjectScoresMap = {};
   for (const m of marksRes.rows) {
-    const pct = m.max_marks > 0 ? Math.round((Number(m.marks) / Number(m.max_marks)) * 100) : 0;
+    const rawPct = m.max_marks > 0 ? (Number(m.marks) / Number(m.max_marks)) * 100 : 0;
+    const pct = rawPct % 1 === 0 ? rawPct : Math.round(rawPct * 100) / 100;
     subjectScoresMap[m.subject_name] = {
       name: m.subject_name,
       semester: m.semester,
@@ -591,6 +592,29 @@ function calculateMultiSubjectBalance(allSubjectScores, weakSubjects, riskLevel,
     }
 
     const allocatedHours = Math.max(0.5, Math.round((share / 100) * totalWeeklyHours * 10) / 10);
+    
+    // Calculate daily target (based on 6 study days per week)
+    let dailyMinutes = Math.round(((allocatedHours / 6) * 60) / 5) * 5;
+    dailyMinutes = Math.max(20, dailyMinutes);
+    let dailyTargetText = '';
+    if (dailyMinutes >= 60) {
+      const hrs = Math.floor(dailyMinutes / 60);
+      const mins = dailyMinutes % 60;
+      dailyTargetText = mins > 0 ? `${hrs} hr ${mins} mins / day` : `${hrs} hr / day`;
+    } else {
+      dailyTargetText = `${dailyMinutes} mins / day`;
+    }
+
+    let balanceTip = '';
+    if (isPrimary) {
+      balanceTip = `Primary Recovery: Spend ${dailyTargetText} on intense problem solving and rebuilding core foundations.`;
+    } else if (isSecondaryWeak) {
+      balanceTip = `Secondary Recovery: Spend ${dailyTargetText} reviewing weak modules to lift marks above passing.`;
+    } else if (isBorderline) {
+      balanceTip = `Balance Focus: Spend ${dailyTargetText} on key concepts to maintain momentum and prevent grade decay.`;
+    } else {
+      balanceTip = `Retention Buffer: Spend ${dailyTargetText} on quick formula revision and flashcards to protect your high score.`;
+    }
 
     return {
       subject_name: s.name,
@@ -599,6 +623,9 @@ function calculateMultiSubjectBalance(allSubjectScores, weakSubjects, riskLevel,
       role,
       share_percentage: share,
       weekly_hours: allocatedHours,
+      daily_minutes: dailyMinutes,
+      daily_target_text: dailyTargetText,
+      balance_tip: balanceTip,
       vulnerability,
       routine
     };

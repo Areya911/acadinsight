@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { getAttritionAnalytics } from '../../services/api';
 import RiskBadge from '../../components/RiskBadge';
 import SkeletonLoader from '../../components/SkeletonLoader';
+import { formatPercent } from '../../utils/format';
 
 const COLORS = {
   low: '#22c55e', // green-500
@@ -184,9 +185,9 @@ export default function AttritionAnalytics() {
                 return (
                   <tr key={student.id} className="hover:bg-slate-50/70 transition-colors group">
                     <td className="py-3 px-3 text-xs font-semibold text-slate-900 group-hover:text-[#4655F5] transition-colors">{student.name}</td>
-                    <td className="py-3 px-3 text-xs text-slate-500">{student.previous_risk_score}%</td>
-                    <td className="py-3 px-3 text-xs font-bold text-slate-900">{student.risk_score}%</td>
-                    <td className="py-3 px-3 text-xs font-bold text-rose-600">+{change}%</td>
+                    <td className="py-3 px-3 text-xs text-slate-500">{formatPercent(student.previous_risk_score)}</td>
+                    <td className="py-3 px-3 text-xs font-bold text-slate-900">{formatPercent(student.risk_score)}</td>
+                    <td className="py-3 px-3 text-xs font-bold text-rose-600">+{formatPercent(change)}</td>
                     <td className="py-3 px-3">
                       <RiskBadge level={student.risk_score > 75 ? 'HIGH' : student.risk_score > 40 ? 'MEDIUM' : 'LOW'} />
                     </td>

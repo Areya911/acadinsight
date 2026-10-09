@@ -4,14 +4,18 @@ const sqlitePool = require('./sqliteAdapter');
 
 let pool;
 
-if (process.env.USE_REMOTE_POSTGRES === 'true' && process.env.DATABASE_URL) {
+const shouldUseRemote = process.env.USE_REMOTE_POSTGRES === 'true';
+
+if (shouldUseRemote && process.env.DATABASE_URL) {
   try {
+    const isLocalhost = process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_URL.includes('supabase') ? { rejectUnauthorized: false } : false
+      ssl: isLocalhost ? false : { rejectUnauthorized: false }
     });
+    console.log('Connected to Remote PostgreSQL Database');
   } catch (err) {
-    console.warn('⚠️  Remote PostgreSQL pool creation failed, using local SQLite database.');
+    console.warn('Remote PostgreSQL pool creation failed, falling back to local SQLite adapter:', err.message);
     pool = sqlitePool;
   }
 } else {

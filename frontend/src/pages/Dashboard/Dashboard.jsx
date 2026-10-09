@@ -9,6 +9,7 @@ import RiskBadge from '../../components/RiskBadge';
 import NotificationCard from '../../components/NotificationCard';
 import StatusBadge from '../../components/StatusBadge';
 import SkeletonLoader from '../../components/SkeletonLoader';
+import { formatScore, formatPercent } from '../../utils/format';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -112,11 +113,11 @@ export default function Dashboard({ user }) {
           <Card title="Skills Tracked" value={stats.totalSkills} color="blue" icon="skills" />
           <Card
             title="Your Average"
-            value={`${stats.averageScore}%`}
+            value={formatPercent(stats.averageScore)}
             color="purple"
             icon="average"
-            trend={stats.averageScore - stats.classAverage}
-            subtitle={`Class avg: ${stats.classAverage}%`}
+            trend={formatScore(stats.averageScore - stats.classAverage)}
+            subtitle={`Class avg: ${formatPercent(stats.classAverage)}`}
           />
           <Card title="Strongest Skill" value={stats.bestSkill} color="green" icon="best" />
           <Card title="Needs Improvement" value={stats.weakestSkill} color="red" icon="weak" />
@@ -132,7 +133,7 @@ export default function Dashboard({ user }) {
             {riskData ? (
               <div>
                 <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-2">
-                  {riskData.risk_score}%
+                  {formatPercent(riskData.risk_score)}
                 </p>
                 <div>
                   <RiskBadge level={riskData.risk_level} />
@@ -147,7 +148,7 @@ export default function Dashboard({ user }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4.5 mb-6 stagger-children">
           <Card title="Total Students" value={stats.totalStudents} color="blue" icon="students" />
           <Card title="Skills Tracked" value={stats.totalSkills} color="purple" icon="skills" />
-          <Card title="Class Average" value={`${stats.averageScore}%`} color="green" icon="class" />
+          <Card title="Class Average" value={formatPercent(stats.averageScore)} color="green" icon="class" />
         </div>
       )}
 
@@ -375,7 +376,7 @@ export default function Dashboard({ user }) {
                   <div key={idx} className="bg-slate-50/70 border border-slate-200/60 p-3 rounded-lg hover:border-slate-300 transition-colors">
                     <div className="flex justify-between items-center mb-1.5">
                       <span className="text-xs font-semibold text-slate-800">{area.name}</span>
-                      <span className="text-xs font-bold text-amber-600">{area.score}%</span>
+                      <span className="text-xs font-bold text-amber-600">{formatPercent(area.score)}</span>
                     </div>
                     <div className="w-full h-1.5 bg-slate-200/70 rounded-full overflow-hidden">
                       <div className="h-full bg-amber-500 rounded-full" style={{ width: `${area.score}%` }}></div>

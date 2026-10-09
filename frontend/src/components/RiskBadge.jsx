@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatScore } from '../utils/format';
 
 const RiskBadge = ({ level, score, showScore = false }) => {
   let badgeStyle = '';
@@ -23,7 +24,7 @@ const RiskBadge = ({ level, score, showScore = false }) => {
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium tracking-wide border ${badgeStyle}`}>
       <span className={`w-1.5 h-1.5 rounded-full bg-current ${pulse ? 'animate-pulse' : ''}`} />
       <span>{level?.toUpperCase()}</span>
-      {showScore && score !== undefined ? <span className="opacity-75 font-semibold">· {score}</span> : ''}
+      {showScore && score !== undefined ? <span className="opacity-75 font-semibold">· {formatScore(score)}</span> : ''}
     </span>
   );
 };

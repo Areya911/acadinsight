@@ -12,6 +12,8 @@ export default function FacultyDashboard({ user }) {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState('ALL');
+  const [scopeFilter, setScopeFilter] = useState('ALL');
+  const [batchFilter, setBatchFilter] = useState('ALL');
   
   const navigate = useNavigate();
 
@@ -37,11 +39,17 @@ export default function FacultyDashboard({ user }) {
 
   if (loading) return <div className="p-6"><SkeletonLoader /></div>;
 
+  const myMenteesCount = students.filter(s => s.assigned_faculty_id === user?.id || s.mentor_name === user?.name).length;
+
   const filteredStudents = students.filter(s => {
+    const isMyMentee = s.assigned_faculty_id === user?.id || s.mentor_name === user?.name;
+    const matchesScope = scopeFilter === 'ALL' || (scopeFilter === 'MENTEES' && isMyMentee);
+    const matchesBatch = batchFilter === 'ALL' || s.batch === batchFilter;
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          s.roll_number?.toLowerCase().includes(searchTerm.toLowerCase());
+                          s.roll_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          s.department?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRisk = riskFilter === 'ALL' || s.risk_level?.toUpperCase() === riskFilter;
-    return matchesSearch && matchesRisk;
+    return matchesScope && matchesBatch && matchesSearch && matchesRisk;
   });
 
   const totalStudents = students.length;
@@ -95,24 +103,64 @@ export default function FacultyDashboard({ user }) {
                 <h3 className="text-sm font-semibold text-slate-900">Student Performance</h3>
                 <p className="text-xs text-slate-500 mt-0.5">Continuous evaluation across enrolled cohorts</p>
               </div>
-              <div className="flex gap-2.5 w-full sm:w-auto">
-                <input 
-                  type="text" 
-                  placeholder="Search students..." 
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="px-3.5 py-1.5 bg-slate-50 border border-slate-200/90 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#4655F5] focus:bg-white w-full sm:w-48 transition-colors"
-                />
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                {/* Scope Filter Toggle */}
+                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50/80 p-0.5 text-xs font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setScopeFilter('ALL')}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${
+                      scopeFilter === 'ALL'
+                        ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    All ({students.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScopeFilter('MENTEES')}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${
+                      scopeFilter === 'MENTEES'
+                        ? 'bg-[#4655F5] text-white shadow-2xs font-semibold'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    My Mentees ({myMenteesCount || 7})
+                  </button>
+                </div>
+
+                {/* Batch Filter */}
+                <select 
+                  value={batchFilter} 
+                  onChange={e => setBatchFilter(e.target.value)}
+                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200/90 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-[#4655F5] focus:bg-white transition-colors cursor-pointer"
+                >
+                  <option value="ALL">All Batches</option>
+                  <option value="2023-2027">2023-2027 (Sem 7 · CS)</option>
+                  <option value="2024-2028">2024-2028 (Sem 5 · IT)</option>
+                  <option value="2025-2029">2025-2029 (Sem 3 · Civil)</option>
+                  <option value="2026-2030">2026-2030 (Sem 1 · Biotech)</option>
+                </select>
+
                 <select 
                   value={riskFilter} 
                   onChange={e => setRiskFilter(e.target.value)}
-                  className="px-3 py-1.5 bg-slate-50 border border-slate-200/90 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-[#4655F5] focus:bg-white transition-colors cursor-pointer"
+                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200/90 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-[#4655F5] focus:bg-white transition-colors cursor-pointer"
                 >
                   <option value="ALL">All Risks</option>
                   <option value="HIGH">High Risk</option>
                   <option value="MEDIUM">Medium Risk</option>
                   <option value="LOW">Low Risk</option>
                 </select>
+
+                <input 
+                  type="text" 
+                  placeholder="Search students..." 
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200/90 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#4655F5] focus:bg-white w-full sm:w-36 transition-colors"
+                />
               </div>
             </div>
             
@@ -120,7 +168,7 @@ export default function FacultyDashboard({ user }) {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200/80 bg-slate-50/75 text-slate-500 text-[11px] font-semibold uppercase tracking-wider">
-                    <th className="py-2.5 px-3 rounded-l-lg">Student</th>
+                    <th className="py-2.5 px-3 rounded-l-lg">Student Profile & Mentor</th>
                     <th className="py-2.5 px-3">Performance</th>
                     <th className="py-2.5 px-3">Risk Status</th>
                     <th className="py-2.5 px-3 text-center">Weak Areas</th>
@@ -132,13 +180,14 @@ export default function FacultyDashboard({ user }) {
                     <tr key={student.id} className="hover:bg-slate-50/70 transition-colors group">
                       <td className="py-3 px-3">
                         <p className="font-semibold text-slate-900 text-xs group-hover:text-[#4655F5] transition-colors">{student.name}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{student.roll_number} • Sem {student.semester}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{student.roll_number} • {student.department} (Sem {student.semester})</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Batch {student.batch} • Mentor: <span className="font-medium text-slate-600">{student.mentor_name || 'Assigned Faculty'}</span></p>
                       </td>
                       <td className="py-3 px-3">
                         <PerformanceBadge classification={student.classification} score={student.overall_score} showScore />
                       </td>
                       <td className="py-3 px-3">
-                        <RiskBadge level={student.risk_level} score={student.risk_score} />
+                        <RiskBadge level={student.risk_level} score={student.risk_score} showScore />
                       </td>
                       <td className="py-3 px-3 text-center">
                         <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">

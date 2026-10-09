@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStudentRoadmap } from '../../services/api';
 import Icon from '../../components/Icon';
+import { formatScore, formatPercent } from '../../utils/format';
 
 const PRIORITY_CONFIG = {
   critical: { color: '#ef4444', bg: '#fef2f2', label: 'Critical', dot: '#dc2626' },
@@ -69,21 +70,21 @@ function RiskBanner({ riskLevel, riskScore }) {
 
 function ScoreGauge({ score, label }) {
   const pct = Math.min(100, Math.max(0, score));
-  const color = pct >= 75 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
+  const color = pct >= 75 ? '#4ade80' : pct >= 50 ? '#fbbf24' : '#f87171';
   const r = 36, cx = 44, cy = 44, strokeW = 8;
   const circumference = 2 * Math.PI * r;
   const offset = circumference - (pct / 100) * circumference;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
       <svg width={88} height={88}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth={strokeW} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={strokeW} />
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={strokeW}
           strokeDasharray={circumference} strokeDashoffset={offset}
           strokeLinecap="round" transform={`rotate(-90 ${cx} ${cy})`}
           style={{ transition: 'stroke-dashoffset 1s ease' }} />
-        <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fontSize={15} fontWeight={700} fill={color}>{Math.round(pct)}%</text>
+        <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fontSize={15} fontWeight={800} fill="#ffffff">{formatPercent(pct)}</text>
       </svg>
-      <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: 13, color: '#ffffff', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>{label}</span>
     </div>
   );
 }
@@ -110,12 +111,12 @@ function SubjectCard({ action }) {
       {/* Progress bar */}
       <div style={{ marginTop: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#6b7280', marginBottom: 4 }}>
-          <span>Current: {action.current_score}%</span><span>Target: {action.target_score}%</span>
+          <span>Current: {formatPercent(action.current_score)}</span><span>Target: {formatPercent(action.target_score)}</span>
         </div>
         <div style={{ height: 6, borderRadius: 99, background: '#f3f4f6', overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${Math.min(100, fill)}%`, background: pc.color, borderRadius: 99, transition: 'width 1s ease' }} />
         </div>
-        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>Gap: {action.gap}% to proficiency</div>
+        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>Gap: {formatPercent(action.gap)} to proficiency</div>
       </div>
       {open && (
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
@@ -205,143 +206,254 @@ function MilestoneTimeline({ milestones }) {
 }
 
 /**
- * Clean, Student-Friendly Multi-Subject Balance Interface
+ * Simple, Student-Friendly Multi-Subject Balance Interface
+ * Displays daily target hours per subject and explains how other subjects
+ * (e.g., DBMS 1 hr/day, CN 30 mins/day) are balanced when a student is weak in OS.
  */
 function StudentFriendlyBalanceTab({ balanceData }) {
   if (!balanceData) return <div className="p-4 text-slate-500">No balance data available.</div>;
 
   const [simFocusShare, setSimFocusShare] = useState(balanceData.recommended_split?.primary_recovery || 40);
 
-  // Group subjects into intuitive student categories
-  const focusSubjects = balanceData.subject_allocations?.filter(s => s.role.includes('Primary') || s.role.includes('Secondary')) || [];
-  const watchOutSubjects = balanceData.subject_allocations?.filter(s => s.role.includes('Maintenance') || s.role.includes('Spillover')) || [];
-  const safeSubjects = balanceData.subject_allocations?.filter(s => s.role.includes('Mastery') || s.role.includes('Retention') || s.role.includes('Buffer')) || [];
+  const getDailyTarget = (sub) => {
+    if (sub.daily_target_text) return sub.daily_target_text;
+    const hours = sub.weekly_hours || 1;
+    const mins = Math.max(20, Math.round(((hours / 6) * 60) / 5) * 5);
+    if (mins >= 60) {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return m > 0 ? `${h} hr ${m} mins / day` : `${h} hr / day`;
+    }
+    return `${mins} mins / day`;
+  };
 
-  // Feedback based on slider
+  const allocations = balanceData.subject_allocations || [];
+  const primarySub = allocations.find(s => s.role?.includes('Primary')) || allocations[0];
+  const borderlineSubs = allocations.filter(s => s.role?.includes('Maintenance') || s.role?.includes('Secondary') || s.role?.includes('Spillover'));
+  const safeSubs = allocations.filter(s => s.role?.includes('Mastery') || s.role?.includes('Retention') || s.role?.includes('Buffer'));
+
+  const secondarySub = borderlineSubs[0] || (allocations.length > 1 ? allocations[1] : null);
+  const safeSub = safeSubs[0] || (allocations.length > 2 ? allocations[allocations.length - 1] : null);
+
+  // Status indicator based on slider
   const isTooHigh = simFocusShare > 60;
   const isModerate = simFocusShare >= 50 && simFocusShare <= 60;
-  const isBalanced = simFocusShare < 50;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Simple Concept Banner */}
+      {/* 1. Main Student-Centered Strategy Banner */}
       <div style={{
-        background: '#f8fafc',
-        border: '1.5px solid #cbd5e1',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)',
+        border: '1.5px solid #bfdbfe',
         borderRadius: 16,
-        padding: '20px 24px',
+        padding: '22px 24px',
         display: 'flex',
         alignItems: 'flex-start',
         gap: 16
       }}>
-        <div style={{ width: 42, height: 42, borderRadius: 12, background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon name="scale" size={22} color="#4338ca" />
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon name="scale" size={24} color="#1d4ed8" />
         </div>
-        <div>
-          <div style={{ fontWeight: 800, color: '#0f172a', fontSize: 16 }}>
-            Multi-Subject Study Balance
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
+              Daily Study Balancer Strategy
+            </span>
+            <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12, textTransform: 'uppercase' }}>
+              GPA Protection Active
+            </span>
           </div>
-          <p style={{ margin: '6px 0 0', fontSize: 14, color: '#475569', lineHeight: 1.6 }}>
-            <strong>Why this plan is different:</strong> When students spend all their study time on one difficult subject, their other subjects get neglected and grades drop. This plan gives you a clear weekly schedule so you boost your weak subjects <em>while keeping all your other courses safe</em>.
+
+          <p style={{ margin: '8px 0 0', fontSize: 14, color: '#334155', lineHeight: 1.65 }}>
+            {primarySub ? (
+              <>
+                To recover in your lowest subject <strong>{primarySub.subject_name}</strong> (target <strong>{getDailyTarget(primarySub)}</strong>) without letting other grades slip, the study balancer recommends focusing{' '}
+                {secondarySub && (
+                  <>
+                    <strong>{secondarySub.subject_name}</strong> for <strong>{getDailyTarget(secondarySub)}</strong>{' '}
+                  </>
+                )}
+                {safeSub && (
+                  <>
+                    and <strong>{safeSub.subject_name}</strong> for <strong>{getDailyTarget(safeSub)}</strong>{' '}
+                  </>
+                )}
+                in order to maintain overall focus and ensure balanced semester scores.
+              </>
+            ) : (
+              'Follow the daily targets below to maintain balanced study time across all semester subjects.'
+            )}
           </p>
         </div>
       </div>
 
-      {/* 3 Step Student Overview Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
-        {/* Card 1: Focus */}
-        <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="target" size={18} color="#dc2626" />
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#991b1b', textTransform: 'uppercase' }}>1. Focus Subjects</span>
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#b91c1c', marginTop: 8 }}>
-            {focusSubjects.reduce((sum, s) => sum + s.weekly_hours, 0).toFixed(1)} hrs/week
-          </div>
-          <p style={{ fontSize: 13, color: '#7f1d1d', margin: '4px 0 0', lineHeight: 1.5 }}>
-            Heavy practice & problem solving in: <strong>{focusSubjects.map(s => s.subject_name).join(', ') || 'None'}</strong>
-          </p>
-        </div>
-
-        {/* Card 2: Watch Out */}
-        <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="shield" size={18} color="#d97706" />
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#92400e', textTransform: 'uppercase' }}>2. Watch-Out Courses</span>
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#b45309', marginTop: 8 }}>
-            {watchOutSubjects.reduce((sum, s) => sum + s.weekly_hours, 0).toFixed(1)} hrs/week
-          </div>
-          <p style={{ fontSize: 13, color: '#78350f', margin: '4px 0 0', lineHeight: 1.5 }}>
-            Regular review so these don't drop: <strong>{watchOutSubjects.map(s => s.subject_name).join(', ') || 'None'}</strong>
-          </p>
-        </div>
-
-        {/* Card 3: Safe */}
-        <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="star" size={18} color="#16a34a" />
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>3. Safe Courses</span>
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#15803d', marginTop: 8 }}>
-            {safeSubjects.reduce((sum, s) => sum + s.weekly_hours, 0).toFixed(1)} hrs/week
-          </div>
-          <p style={{ fontSize: 13, color: '#14532d', margin: '4px 0 0', lineHeight: 1.5 }}>
-            Quick weekly flashcards & summary: <strong>{safeSubjects.map(s => s.subject_name).join(', ') || 'None'}</strong>
-          </p>
-        </div>
-      </div>
-
-      {/* Simple Study Recipe */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '22px 26px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <Icon name="clock" size={20} color="#4f46e5" />
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            Your Daily Study Recipe (How to split your study sessions)
-          </h3>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
-          <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 10, borderLeft: '4px solid #4f46e5' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#4f46e5' }}>STEP 1 • 50 MINS</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 2 }}>Main Problem Solving</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Practice difficult questions in {balanceData.primary_target}.</div>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 10, borderLeft: '4px solid #f59e0b' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#d97706' }}>STEP 2 • 25 MINS</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 2 }}>Quick Maintenance</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Read notes or do 3 problems in a secondary subject.</div>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 10, borderLeft: '4px solid #10b981' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#059669' }}>STEP 3 • 15 MINS</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 2 }}>Flashcard Recall</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Test yourself on formulas across all courses.</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Interactive Balance Checker Slider */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '22px 26px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+      {/* 2. Daily Target Hours per Subject (Front & Center) */}
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '22px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
           <div>
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              Study Focus Checker: What happens if I study only one subject?
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="clock" size={20} color="#4f46e5" />
+              Daily Target Hours per Subject
             </h3>
             <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0' }}>
-              Slide to see how over-focusing on <strong>{balanceData.primary_target}</strong> affects your other grades.
+              Target daily time allocation based on a 6-day study week (Total: {balanceData.total_weekly_budget_hours || 22} hrs/week)
+            </p>
+          </div>
+          <span style={{ background: '#f1f5f9', color: '#475569', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20 }}>
+            {allocations.length} Active Subjects
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {allocations.map((sub, idx) => {
+            const dailyTarget = getDailyTarget(sub);
+            const isWeak = sub.role?.includes('Primary') || sub.role?.includes('Secondary') || sub.current_score < 50;
+            const isBorderline = sub.role?.includes('Maintenance') || sub.role?.includes('Spillover') || (sub.current_score >= 50 && sub.current_score < 75);
+            
+            const badgeBg = isWeak ? '#fee2e2' : isBorderline ? '#fef3c7' : '#dcfce7';
+            const badgeColor = isWeak ? '#b91c1c' : isBorderline ? '#b45309' : '#15803d';
+            const pillBorder = isWeak ? '#fca5a5' : isBorderline ? '#fde68a' : '#86efac';
+
+            let balancingStatement = '';
+            if (isWeak) {
+              balancingStatement = `Focus ${dailyTarget}: Intensive concept repair and problem solving to lift scores above passing.`;
+            } else if (isBorderline) {
+              balancingStatement = `Focus ${dailyTarget}: Regular practice and active recall to balance studying and prevent grade drop.`;
+            } else {
+              balancingStatement = `Focus ${dailyTarget}: Quick formula review and summary flashcards to easily maintain your strong score.`;
+            }
+
+            return (
+              <div 
+                key={idx} 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  gap: 8,
+                  padding: '16px 18px', 
+                  background: isWeak ? '#fffbfb' : '#f8fafc', 
+                  borderRadius: 12, 
+                  border: `1.5px solid ${isWeak ? '#fecaca' : '#e2e8f0'}`,
+                  transition: 'transform 0.15s, box-shadow 0.15s'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: isWeak ? '#ef4444' : isBorderline ? '#f59e0b' : '#22c55e' }} />
+                    <span style={{ fontWeight: 800, fontSize: 15, color: '#0f172a' }}>
+                      {sub.subject_name}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', background: '#fff', border: '1px solid #e2e8f0', padding: '2px 8px', borderRadius: 10 }}>
+                      Score: {sub.current_score}%
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ 
+                      background: badgeBg, 
+                      color: badgeColor, 
+                      border: `1px solid ${pillBorder}`,
+                      fontSize: 13, 
+                      fontWeight: 800, 
+                      padding: '4px 12px', 
+                      borderRadius: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}>
+                      <Icon name="clock" size={13} color={badgeColor} />
+                      {dailyTarget}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                      ({sub.weekly_hours} hrs/wk)
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: 13, color: '#475569', paddingLeft: 20, lineHeight: 1.5 }}>
+                  {sub.balance_tip || balancingStatement}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. Recommended Daily Study Routine Template */}
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '22px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <Icon name="calendar" size={18} color="#4f46e5" />
+          <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+            Sample Daily Study Routine (How to balance your sessions)
+          </h3>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12 }}>
+          <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: 12, borderLeft: '4px solid #ef4444' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#dc2626', textTransform: 'uppercase' }}>Session 1 • Core Focus</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>
+              {primarySub ? primarySub.subject_name : 'Weak Subject'}
+            </div>
+            <div style={{ fontSize: 13, color: '#4b5563', marginTop: 2, fontWeight: 600 }}>
+              {primarySub ? getDailyTarget(primarySub) : '1 hr 30 mins / day'}
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+              Work on fundamental problem sets & clarify doubts first while your mind is freshest.
+            </div>
+          </div>
+
+          <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: 12, borderLeft: '4px solid #f59e0b' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#d97706', textTransform: 'uppercase' }}>Session 2 • Balance Anchor</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>
+              {secondarySub ? secondarySub.subject_name : 'Secondary Course'}
+            </div>
+            <div style={{ fontSize: 13, color: '#4b5563', marginTop: 2, fontWeight: 600 }}>
+              {secondarySub ? getDailyTarget(secondarySub) : '1 hr / day'}
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+              Review lecture notes and do 2-3 standard questions to prevent neglect.
+            </div>
+          </div>
+
+          <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: 12, borderLeft: '4px solid #10b981' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#059669', textTransform: 'uppercase' }}>Session 3 • Quick Retention</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>
+              {safeSub ? safeSub.subject_name : 'Safe Courses'}
+            </div>
+            <div style={{ fontSize: 13, color: '#4b5563', marginTop: 2, fontWeight: 600 }}>
+              {safeSub ? getDailyTarget(safeSub) : '30 mins / day'}
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+              Quick flashcards and formula recall to effortlessly maintain your high GPA.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Interactive Balance Simulator Slider */}
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '20px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <div>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              Workload Simulator: What if I only study {primarySub?.subject_name || 'one subject'}?
+            </h3>
+            <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>
+              Adjust slider to test how over-allocating time to one subject affects other course retention.
             </p>
           </div>
           <button 
             onClick={() => setSimFocusShare(40)}
-            style={{ fontSize: 12, color: '#4f46e5', fontWeight: 700, background: '#eef2ff', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}
+            style={{ fontSize: 11, color: '#4f46e5', fontWeight: 700, background: '#eef2ff', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer' }}
           >
-            Reset to Recommended (40%)
+            Reset (40%)
           </button>
         </div>
 
-        <div style={{ margin: '20px 0 12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
-            <span>Time dedicated to {balanceData.primary_target}:</span>
-            <span style={{ color: isTooHigh ? '#dc2626' : isModerate ? '#d97706' : '#2563eb', fontSize: 16 }}>{simFocusShare}% of total study hours</span>
+        <div style={{ margin: '16px 0 10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
+            <span>Time dedicated to {primarySub?.subject_name || 'Focus Subject'}:</span>
+            <span style={{ color: isTooHigh ? '#dc2626' : isModerate ? '#d97706' : '#2563eb', fontSize: 14 }}>
+              {simFocusShare}% of total study hours
+            </span>
           </div>
           <input 
             type="range" 
@@ -353,49 +465,23 @@ function StudentFriendlyBalanceTab({ balanceData }) {
           />
         </div>
 
-        {/* Live Status Pill */}
         <div style={{
-          padding: '12px 16px',
-          borderRadius: 10,
+          padding: '10px 14px',
+          borderRadius: 8,
           background: isTooHigh ? '#fef2f2' : isModerate ? '#fffbeb' : '#f0fdf4',
           border: `1px solid ${isTooHigh ? '#fecaca' : isModerate ? '#fde68a' : '#bbf7d0'}`,
           display: 'flex',
           alignItems: 'center',
           gap: 10
         }}>
-          <Icon name={isTooHigh ? 'warning' : isModerate ? 'info' : 'check-circle'} size={18} color={isTooHigh ? '#dc2626' : isModerate ? '#d97706' : '#16a34a'} />
-          <div style={{ fontSize: 13, fontWeight: 600, color: isTooHigh ? '#991b1b' : isModerate ? '#92400e' : '#166534' }}>
+          <Icon name={isTooHigh ? 'warning' : isModerate ? 'info' : 'check-circle'} size={16} color={isTooHigh ? '#dc2626' : isModerate ? '#d97706' : '#16a34a'} />
+          <div style={{ fontSize: 12, fontWeight: 600, color: isTooHigh ? '#991b1b' : isModerate ? '#92400e' : '#166534' }}>
             {isTooHigh
-              ? `High Risk of Grade Drop: Spending ${simFocusShare}% of your time on one course leaves almost zero time for other subjects. Your other grades will likely drop.`
+              ? `Spillover Warning: Spending ${simFocusShare}% exclusively on one course starves other subjects of time, causing other grades to drop.`
               : isModerate
-              ? `Watch Out: Spending ${simFocusShare}% on one course is workable for 1 week, but make sure to catch up on other subjects over the weekend.`
-              : `Optimal Balance: Great split. You will improve your weak subjects without risking your grades in other courses.`}
+              ? `Caution: Spending ${simFocusShare}% on one course is intense. Ensure you balance 45-60 mins/day on your secondary subjects.`
+              : `Optimal Balance: Excellent distribution. You repair your weak areas while keeping your other subjects completely safe.`}
           </div>
-        </div>
-      </div>
-
-      {/* Detailed Subject List with Simple Tips */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '22px 26px' }}>
-        <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>
-          Weekly Target Hours per Subject (Total: {balanceData.total_weekly_budget_hours} hrs/wk)
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {balanceData.subject_allocations?.map((sub, idx) => (
-            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', flexWrap: 'wrap', gap: 8 }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{sub.subject_name}</span>
-                  <span style={{ fontSize: 12, color: '#64748b' }}>Current: {sub.current_score}%</span>
-                </div>
-                <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>{sub.routine}</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ background: '#e0e7ff', color: '#4338ca', fontSize: 12, fontWeight: 800, padding: '4px 10px', borderRadius: 12 }}>
-                  {sub.weekly_hours} hrs/week ({sub.share_percentage}%)
-                </span>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>
@@ -469,7 +555,7 @@ export default function AcademicRoadmap() {
       </button>
 
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0ea5e9 100%)', borderRadius: 20, padding: '32px 36px', color: '#fff', marginBottom: 24, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1e40af 100%)', borderRadius: 20, padding: '32px 36px', color: '#fff', marginBottom: 24, position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
         <div style={{ position: 'absolute', bottom: -60, right: 80, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
 

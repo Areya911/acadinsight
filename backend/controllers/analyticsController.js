@@ -25,16 +25,23 @@ exports.getOverview = async (req, res) => {
     });
     
     const avgPerfRes = await pool.query("SELECT AVG(overall_score) FROM student_performance");
-    const avg_performance = parseFloat(avgPerfRes.rows[0].avg || 0);
+    const rawAvg = parseFloat(avgPerfRes.rows[0].avg || 0);
+    const avg_performance = rawAvg % 1 === 0 ? rawAvg : parseFloat(rawAvg.toFixed(2));
     
     const highRiskStudentsRes = await pool.query(`
-      SELECT u.id, u.name, u.roll_number, u.department, sp.overall_score, rs.risk_score, rs.risk_level 
+      SELECT u.id, u.name, u.roll_number, u.department, u.batch, u.mentor_name, sp.overall_score, rs.risk_score, rs.risk_level 
       FROM risk_scores rs
       JOIN users u ON rs.student_id = u.id
       JOIN student_performance sp ON u.id = sp.student_id
       WHERE rs.risk_level = 'HIGH'
       ORDER BY rs.risk_score DESC LIMIT 10
     `);
+
+    const highRiskStudents = highRiskStudentsRes.rows.map(s => ({
+      ...s,
+      overall_score: Number(s.overall_score) % 1 === 0 ? Number(s.overall_score) : parseFloat(Number(s.overall_score).toFixed(2)),
+      risk_score: Number(s.risk_score) % 1 === 0 ? Number(s.risk_score) : parseFloat(Number(s.risk_score).toFixed(2))
+    }));
     
     const alertsRes = await pool.query(`
       SELECT pa.*, u.name as student_name 
@@ -44,7 +51,7 @@ exports.getOverview = async (req, res) => {
     `);
     
     const deptRiskRes = await pool.query(`
-      SELECT u.department, AVG(rs.risk_score) as avg_risk, COUNT(u.id) as student_count
+      SELECT u.department, ROUND(AVG(rs.risk_score), 2) as avg_risk, COUNT(u.id) as student_count
       FROM users u
       JOIN risk_scores rs ON u.id = rs.student_id
       WHERE u.role = 'student'
@@ -52,7 +59,7 @@ exports.getOverview = async (req, res) => {
     `);
     
     const semRiskRes = await pool.query(`
-      SELECT u.semester, AVG(rs.risk_score) as avg_risk, COUNT(u.id) as student_count
+      SELECT u.semester, ROUND(AVG(rs.risk_score), 2) as avg_risk, COUNT(u.id) as student_count
       FROM users u
       JOIN risk_scores rs ON u.id = rs.student_id
       WHERE u.role = 'student'
@@ -64,7 +71,7 @@ exports.getOverview = async (req, res) => {
       good_count, average_count, bad_count,
       low_risk, medium_risk, high_risk,
       avg_performance,
-      high_risk_students: highRiskStudentsRes.rows,
+      high_risk_students: highRiskStudents,
       recent_alerts: alertsRes.rows,
       department_risk: deptRiskRes.rows,
       semester_risk: semRiskRes.rows
@@ -77,10 +84,11 @@ exports.getOverview = async (req, res) => {
 
 exports.getAllStudentsAnalytics = async (req, res) => {
   try {
-    const { department, semester, risk_level, classification, search } = req.query;
+    const { department, semester, batch, risk_level, classification, search, mentor_id } = req.query;
     
     let query = `
-      SELECT u.id, u.name, u.email, u.roll_number, u.department, u.semester, u.year,
+      SELECT u.id, u.name, u.email, u.roll_number, u.department, u.semester, u.year, u.batch,
+             u.assigned_faculty_id, u.mentor_name,
              sp.overall_score, sp.classification, rs.risk_score, rs.risk_level,
              COALESCE(rf.weak_subject_count, 0) as weak_areas_count,
              COALESCE(rf.weak_subject_count, 0) as weak_subject_count
@@ -95,6 +103,8 @@ exports.getAllStudentsAnalytics = async (req, res) => {
 
     if (department) { query += ` AND u.department = $${count++}`; params.push(department); }
     if (semester) { query += ` AND u.semester = $${count++}`; params.push(semester); }
+    if (batch) { query += ` AND u.batch = $${count++}`; params.push(batch); }
+    if (mentor_id) { query += ` AND u.assigned_faculty_id = $${count++}`; params.push(mentor_id); }
     if (risk_level) { query += ` AND rs.risk_level = $${count++}`; params.push(risk_level); }
     if (classification) { query += ` AND sp.classification = $${count++}`; params.push(classification); }
     if (search) { 
@@ -104,7 +114,12 @@ exports.getAllStudentsAnalytics = async (req, res) => {
     }
 
     const result = await pool.query(query, params);
-    res.json(result.rows);
+    const formatted = result.rows.map(r => ({
+      ...r,
+      overall_score: r.overall_score != null ? (Number(r.overall_score) % 1 === 0 ? Number(r.overall_score) : parseFloat(Number(r.overall_score).toFixed(2))) : 0,
+      risk_score: r.risk_score != null ? (Number(r.risk_score) % 1 === 0 ? Number(r.risk_score) : parseFloat(Number(r.risk_score).toFixed(2))) : 0
+    }));
+    res.json(formatted);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -184,7 +199,13 @@ exports.getSubjectAnalytics = async (req, res) => {
       ORDER BY avg_score ASC
     `;
     const result = await pool.query(query);
-    res.json(result.rows);
+    const formatted = result.rows.map(r => ({
+      ...r,
+      avg_score: r.avg_score != null ? (Number(r.avg_score) % 1 === 0 ? Number(r.avg_score) : parseFloat(Number(r.avg_score).toFixed(2))) : 0,
+      min_score: r.min_score != null ? (Number(r.min_score) % 1 === 0 ? Number(r.min_score) : parseFloat(Number(r.min_score).toFixed(2))) : 0,
+      max_score: r.max_score != null ? (Number(r.max_score) % 1 === 0 ? Number(r.max_score) : parseFloat(Number(r.max_score).toFixed(2))) : 0
+    }));
+    res.json(formatted);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
