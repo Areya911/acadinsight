@@ -136,26 +136,52 @@ async function runStartupMigration() {
     await pool.query(`CREATE TABLE IF NOT EXISTS performance_history (id SERIAL PRIMARY KEY, student_id INTEGER REFERENCES users(id) ON DELETE CASCADE, semester INTEGER, avg_score NUMERIC(5,2), risk_score NUMERIC(5,2), recorded_at TIMESTAMP DEFAULT NOW())`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_history_student ON performance_history(student_id)`);
 
-    // 5. Check if seed accounts exist; if users table is empty, auto-create initial admin & faculty
+    // 5. Check if seed accounts exist; if users table is empty, auto-create initial admin, faculty, and students
     const userCheck = await pool.query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
     const adminCount = parseInt(userCheck.rows[0]?.count || 0, 10);
     if (adminCount === 0) {
       const bcrypt = require('bcryptjs');
       const adminHash = await bcrypt.hash('admin123', 10);
       const facultyHash = await bcrypt.hash('faculty123', 10);
+      const studentHash = await bcrypt.hash('student123', 10);
+
+      // Admin
       await pool.query(
         `INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING`,
         ['Admin User', 'admin@acadinsight.com', adminHash, 'admin']
       );
-      await pool.query(
-        `INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING`,
-        ['Dr. Rajesh Kumar', 'dr.kumar@acadinsight.com', facultyHash, 'faculty']
-      );
-      await pool.query(
-        `INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING`,
-        ['Prof. Anjali Sharma', 'prof.sharma@acadinsight.com', facultyHash, 'faculty']
-      );
-      console.log('Default Admin & Faculty accounts verified/seeded');
+
+      // Faculty
+      const facultyMembers = [
+        ['Prof. Karthikeyan S', 'karthikeyan@acadinsight.com', 'Computer Science'],
+        ['Prof. Meenakshi R', 'meenakshi@acadinsight.com', 'Computer Science'],
+        ['Prof. Suresh Kumar', 'suresh@acadinsight.com', 'Information Technology'],
+        ['Prof. Revathi M', 'revathi@acadinsight.com', 'Information Technology'],
+        ['Prof. Aravindhan P', 'aravindhan@acadinsight.com', 'Electronics'],
+        ['Prof. Priyanka S', 'priyanka@acadinsight.com', 'Computer Science']
+      ];
+      for (const [fName, fEmail, fDept] of facultyMembers) {
+        await pool.query(
+          `INSERT INTO users (name, email, password, role, department) VALUES ($1, $2, $3, 'faculty', $4) ON CONFLICT (email) DO NOTHING`,
+          [fName, fEmail, facultyHash, fDept]
+        );
+      }
+
+      // Sample Students
+      const sampleStudents = [
+        ['Arjun Kumar', 'arjun@acadinsight.com', 'Computer Science', 7, 4, '2021-2025', 'CS2021001'],
+        ['Kavin Raj', 'kavin@acadinsight.com', 'Information Technology', 5, 3, '2022-2026', 'IT2022002'],
+        ['Harish Kumar', 'harish@acadinsight.com', 'Computer Science', 7, 4, '2021-2025', 'CS2021003'],
+        ['Dharani M', 'dharani@acadinsight.com', 'Computer Science', 7, 4, '2021-2025', 'CS2021004'],
+        ['Divya K', 'divya@acadinsight.com', 'Information Technology', 5, 3, '2022-2026', 'IT2022005']
+      ];
+      for (const [sName, sEmail, sDept, sSem, sYr, sBatch, sRoll] of sampleStudents) {
+        await pool.query(
+          `INSERT INTO users (name, email, password, role, department, semester, year, batch, roll_number) VALUES ($1, $2, $3, 'student', $4, $5, $6, $7, $8) ON CONFLICT (email) DO NOTHING`,
+          [sName, sEmail, studentHash, sDept, sSem, sYr, sBatch, sRoll]
+        );
+      }
+      console.log('Default Admin, Faculty, and Student accounts verified/seeded');
     }
 
     console.log('Database tables verified and ready');

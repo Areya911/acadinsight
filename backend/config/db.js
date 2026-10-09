@@ -4,7 +4,8 @@ const sqlitePool = require('./sqliteAdapter');
 
 let pool;
 
-const shouldUseRemote = process.env.USE_REMOTE_POSTGRES === 'true';
+const shouldUseRemote = process.env.USE_REMOTE_POSTGRES === 'true' || 
+  Boolean(process.env.DATABASE_URL && process.env.RENDER);
 
 if (shouldUseRemote && process.env.DATABASE_URL) {
   try {
